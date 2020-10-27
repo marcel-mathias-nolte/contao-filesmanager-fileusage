@@ -1,21 +1,23 @@
 <?php
 
 /*
- * This file is part of SkeletonBundle.
+ * This file is part of ContaoFilesmanagerFileusageBundle.
  *
- * (c) John Doe
- *
- * @license LGPL-3.0-or-later
+ * @package   ContaoFilesmanagerFileusageBundle
+ * @author    Marcel Mathias Nolte
+ * @copyright Marcel Mathias Nolte 2015-2020
+ * @website	  https://marcel.live
+ * @license   LGPL-3.0-or-later
  */
 
-namespace MarcelMathiasNolte\SkeletonBundle\DependencyInjection;
+namespace MarcelMathiasNolte\ContaoFilesmanagerFileusageBundle\DependencyInjection;
 
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 
-class ContaoSkeletonExtension extends Extension
+class ContaoFilesmanagerFileusageExtension extends Extension
 {
     /**
      * {@inheritdoc}

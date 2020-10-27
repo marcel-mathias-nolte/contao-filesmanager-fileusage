@@ -1,7 +1,7 @@
 <?php
 
 $header = <<<EOF
-This file is part of SkeletonBundle.
+This file is part of ContaoFilesmanagerFileusageBundle.
 
 (c) John Doe
 
