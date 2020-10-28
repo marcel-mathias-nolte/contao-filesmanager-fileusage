@@ -1,0 +1,12 @@
+<div class="fileusage_container">
+    <?php if (count($this->usage) > 0): ?>
+        <p><strong><?php printf($GLOBALS['TL_LANG']['FILE_USAGE']['usage'], $this->filename); ?></strong></p>
+        <ul>
+            <?php foreach($this->usage as $usage): ?>
+                <li><?php echo $usage; ?></li>
+            <?php endforeach; ?>
+        </ul>
+    <?php else: ?>
+        <p><strong><?php printf($GLOBALS['TL_LANG']['FILE_USAGE']['nousage'], $this->filename); ?></strong></p>
+    <?php endif; ?>
+</div>

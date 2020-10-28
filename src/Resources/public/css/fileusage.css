@@ -1,0 +1,18 @@
+.fileusage_container {
+    padding: 2em;
+    font-size: 1.2em;
+}
+.fileusage_container ul,
+.fileusage_container li {
+    list-style: disc;
+}
+.fileusage_container ul {
+    margin: 1em 0;
+    padding: 1em;
+}
+.fileusage_container li {
+    margin: 0.5em 0;
+}
+.fileusage_container li a {
+    color: darkgreen;
+}
