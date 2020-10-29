@@ -2,7 +2,7 @@
     "name": "marcel-mathias-nolte/contao-filesmanager-fileusage",
     "type": "contao-bundle",
     "description": "This bundles displays an icon, which shows whether an file is used anywhere or not and shows details on where it is used if you click on it.",
-    "homepage": "https://marcel.live",
+    "homepage": "https://github.com/marcel-mathias-nolte",
     "license": "LGPL-3.0-or-later",
     "authors": [
         {
@@ -15,7 +15,7 @@
         },
         {
             "name": "Marcel Mathias Nolte",
-            "homepage": "https://marcel.live"
+            "homepage": "https://github.com/marcel-mathias-nolte"
         }
     ],
     "require": {
