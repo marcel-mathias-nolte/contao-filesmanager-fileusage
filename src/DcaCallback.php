@@ -25,7 +25,7 @@ class DcaCallbacks extends \Contao\Backend
         $this->buildUsageCache();
         $inUse = isset(self::$filesCache[urldecode($row['id'])]);
         $icon = 'bundles/contaofilesmanagerfileusage/icons/' . ($inUse ? 'link-active.svg' : 'link-inactive.svg');
-        if (!$inUse) $title = $GLOBALS['TL_LANG']['tl_files']['fileusage_'][1];
+        $title = $inUse ? $GLOBALS['TL_LANG']['tl_files']['fileusage'][2] : $GLOBALS['TL_LANG']['tl_files']['fileusage'][3];
         $href .= '&id=' . urlencode($row['id']);
         return '<a href="' . $this->addToUrl($href) . '" title="' . \Contao\StringUtil::specialchars($title) . '" data-tid="cid"' . $attributes . '>' . \Contao\Image::getHtml($icon, $label, '') . '</a> ';
     }
@@ -382,10 +382,13 @@ class DcaCallbacks extends \Contao\Backend
             return '';
         }
         $GLOBALS['TL_CSS'][] = 'bundles/contaofilesmanagerfileusage/css/fileusage.css';
+        $this->Template = new \BackendTemplate($this->strTemplate);
+        $this->Template->filename = urldecode(\Input::get('id'));
         $this->buildUsageCache();
         $db = \Database::getInstance();
         if (!isset(self::$filesCache[urldecode(\Input::get('id'))])) {
-            return '';
+            $this->Template->usage = [];
+            return $this->Template->parse();
         }
         $usage = self::$filesCache[urldecode(\Input::get('id'))];
         $known = [];
@@ -462,9 +465,7 @@ class DcaCallbacks extends \Contao\Backend
                 }
             }
         }
-        $this->Template = new \BackendTemplate($this->strTemplate);
         $this->Template->usage = $known;
-        $this->Template->filename = urldecode(\Input::get('id'));
         return $this->Template->parse();
     }
 }

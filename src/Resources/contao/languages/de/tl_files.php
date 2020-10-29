@@ -10,5 +10,4 @@
  * @license   LGPL-3.0-or-later
  */
 
-$GLOBALS['TL_LANG']['tl_files']['fileusage'] = ['Nutzung der Datei', 'Die Datei ist in Benutzung'];
-$GLOBALS['TL_LANG']['tl_files']['fileusage_'] = ['Nutzung der Datei', 'Die Datei ist nicht in Benutzung'];
+$GLOBALS['TL_LANG']['tl_files']['fileusage'] = ['Nutzung der Datei', 'Nutzung der Datei', 'Die Datei ist in Benutzung', 'Die Datei ist nicht in Benutzung'];

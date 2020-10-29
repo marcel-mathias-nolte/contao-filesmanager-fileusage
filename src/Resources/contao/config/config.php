@@ -7,7 +7,11 @@ $tmp = [
         'ref' => &$GLOBALS['TL_LANG']['CTE'],
         'parent' => 'dynamic',
         'href' => [
-            'tl_article' => '/contao?do=article&table=tl_content&id=%id%&act=edit'
+            'tl_article' => '/contao?do=article&table=tl_content&id=%id%&act=edit',
+            'tl_news' => '/contao?do=news&table=tl_content&id=%id%&act=edit',
+            'tl_calendar_events' => '/contao?do=calendar&table=tl_content&id=%id%&act=edit',
+            'tl_newsletter' => '/contao?do=newsletter&table=tl_content&id=%id%&act=edit',
+            'tl_news4ward_article' => '/contao?do=news4ward&table=tl_content&id=%id%&act=edit'
         ]
     ],
     'tl_article' => [
@@ -53,7 +57,7 @@ $tmp = [
     'tl_newsletter' => [
         'labelColumn' => ['title'],
         'parent' => 'tl_calendar',
-        'href' => '/contao?do=calendar&table=tl_newsletter&act=edit&id=%id%'
+        'href' => '/contao?do=newsletter&table=tl_newsletter&act=edit&id=%id%'
     ],
     'tl_newsletter_channel' => [
         'labelColumn' => ['title'],
