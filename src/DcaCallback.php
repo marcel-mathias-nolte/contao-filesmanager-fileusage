@@ -261,7 +261,6 @@ class DcaCallbacks extends \Contao\Backend
                         self::$filesCache[urldecode($bit)][] = (object)[
                             'css_file' => $objFile->path
                         ];
-                        var_dump(urldecode($bit));
                     }
                 }
                 $text = explode('{{', $t);
