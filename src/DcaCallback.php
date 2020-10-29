@@ -232,11 +232,11 @@ class DcaCallbacks extends \Contao\Backend
             $list = $this->Database->execute("SELECT * FROM tl_files WHERE name LIKE '%.css' OR name LIKE '%.scss'");
             while($list->next()) {
                 $objFile = \Contao\FilesModel::findByPk($list->id);
-                if (!file_exists(\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/' . $objFiles->path))
+                if (!file_exists(\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/' . $objFile->path))
                 {
                     continue;
                 }
-                $t = file_get_contents(\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/' . $objFiles->path);
+                $t = file_get_contents(\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/' . $objFile->path);
                 $text = explode('files/', $t);
                 if (count($text > 1)) {
                     array_shift($text);
