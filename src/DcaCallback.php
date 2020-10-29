@@ -249,7 +249,10 @@ class DcaCallbacks extends \Contao\Backend
                         if ($pos !== false) {
                             $bit = substr($bit, 0, $pos);
                         }
-                        $bit = substr($bit, 0, $pos);
+                        $pos = strpos($bit, '}');
+                        if ($pos !== false) {
+                            $bit = substr($bit, 0, $pos);
+                        }
                         $pos = strpos($bit, '?');
                         if ($pos !== false) {
                             $bit = substr($bit, 0, $pos);
@@ -258,6 +261,7 @@ class DcaCallbacks extends \Contao\Backend
                         self::$filesCache[urldecode($bit)][] = (object)[
                             'css_file' => $objFile->path
                         ];
+                        var_dump(urldecode($bit));
                     }
                 }
                 $text = explode('{{', $t);
