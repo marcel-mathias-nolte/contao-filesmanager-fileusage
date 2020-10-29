@@ -57,21 +57,23 @@ class DcaCallbacks extends \Contao\Backend
                                         array_shift($text);
                                         foreach ($text as $bit) {
                                             $pos = strpos($bit, "'");
-                                            if ($pos === false) {
-                                                $pos = strpos($bit, '"');
-                                            }
                                             if ($pos !== false) {
                                                 $bit = substr($bit, 0, $pos);
-                                                $pos = strpos($bit, '?');
-                                                if ($pos !== false) {
-                                                    $bit = substr($bit, 0, $pos);
-                                                }
-                                                $bit = 'files/' . $bit;
-                                                self::$filesCache[urldecode($bit)][] = (object)[
-                                                    'table' => $table,
-                                                    'id' => $list->id
-                                                ];
                                             }
+                                            $pos = strpos($bit, '"');
+                                            if ($pos !== false) {
+                                                $bit = substr($bit, 0, $pos);
+                                            }
+                                            $bit = substr($bit, 0, $pos);
+                                            $pos = strpos($bit, '?');
+                                            if ($pos !== false) {
+                                                $bit = substr($bit, 0, $pos);
+                                            }
+                                            $bit = 'files/' . $bit;
+                                            self::$filesCache[urldecode($bit)][] = (object)[
+                                                'table' => $table,
+                                                'id' => $list->id
+                                            ];
                                         }
                                     }
                                     $text = $list->$field;
@@ -127,21 +129,23 @@ class DcaCallbacks extends \Contao\Backend
                                     array_shift($text);
                                     foreach ($text as $bit) {
                                         $pos = strpos($bit, "'");
-                                        if ($pos === false) {
-                                            $pos = strpos($bit, '"');
-                                        }
                                         if ($pos !== false) {
                                             $bit = substr($bit, 0, $pos);
-                                            $pos = strpos($bit, '?');
-                                            if ($pos !== false) {
-                                                $bit = substr($bit, 0, $pos);
-                                            }
-                                            $bit = 'files/' . $bit;
-                                            self::$filesCache[urldecode($bit)][] = (object)[
-                                                'table' => $table,
-                                                'id' => $list->id
-                                            ];
                                         }
+                                        $pos = strpos($bit, '"');
+                                        if ($pos !== false) {
+                                            $bit = substr($bit, 0, $pos);
+                                        }
+                                        $bit = substr($bit, 0, $pos);
+                                        $pos = strpos($bit, '?');
+                                        if ($pos !== false) {
+                                            $bit = substr($bit, 0, $pos);
+                                        }
+                                        $bit = 'files/' . $bit;
+                                        self::$filesCache[urldecode($bit)][] = (object)[
+                                            'table' => $table,
+                                            'id' => $list->id
+                                        ];
                                     }
                                 }
                             }
@@ -238,20 +242,22 @@ class DcaCallbacks extends \Contao\Backend
                     array_shift($text);
                     foreach ($text as $bit) {
                         $pos = strpos($bit, "'");
-                        if ($pos === false) {
-                            $pos = strpos($bit, '"');
-                        }
                         if ($pos !== false) {
                             $bit = substr($bit, 0, $pos);
-                            $pos = strpos($bit, '?');
-                            if ($pos !== false) {
-                                $bit = substr($bit, 0, $pos);
-                            }
-                            $bit = 'files/' . $bit;
-                            self::$filesCache[urldecode($bit)][] = (object)[
-                                'css_file' => $objFile->path
-                            ];
                         }
+                        $pos = strpos($bit, '"');
+                        if ($pos !== false) {
+                            $bit = substr($bit, 0, $pos);
+                        }
+                        $bit = substr($bit, 0, $pos);
+                        $pos = strpos($bit, '?');
+                        if ($pos !== false) {
+                            $bit = substr($bit, 0, $pos);
+                        }
+                        $bit = 'files/' . $bit;
+                        self::$filesCache[urldecode($bit)][] = (object)[
+                            'css_file' => $objFile->path
+                        ];
                     }
                 }
                 $text = explode('{{', $t);
@@ -294,7 +300,7 @@ class DcaCallbacks extends \Contao\Backend
                     }
                 }
             }
-            $stack = [\Contao\System::getContainer()->getParameter('kernel.project_dir') . 'templates'];
+            $stack = [\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/templates'];
             while (count($stack) > 0) {
                 $dir = array_pop($stack);
                 $f = @opendir($dir);
@@ -303,7 +309,7 @@ class DcaCallbacks extends \Contao\Backend
                         if ($file == '.' || $file == '..') {
                             continue;
                         }
-                        $full = $dir . DIRECTORY_SEPARATOR . $file;
+                        $full = $dir . '/' . $file;
                         if (is_dir($full)) {
                             array_push($stack, $full);
                         } else if (is_file($full)) {
@@ -314,20 +320,22 @@ class DcaCallbacks extends \Contao\Backend
                                 array_shift($text);
                                 foreach ($text as $bit) {
                                     $pos = strpos($bit, "'");
-                                    if ($pos === false) {
-                                        $pos = strpos($bit, '"');
-                                    }
                                     if ($pos !== false) {
                                         $bit = substr($bit, 0, $pos);
-                                        $pos = strpos($bit, '?');
-                                        if ($pos !== false) {
-                                            $bit = substr($bit, 0, $pos);
-                                        }
-                                        $bit = 'files/' . $bit;
-                                        self::$filesCache[urldecode($bit)][] = (object)[
-                                            'template' => str_replace(\Contao\System::getContainer()->getParameter('kernel.project_dir'), '', $full)
-                                        ];
                                     }
+                                    $pos = strpos($bit, '"');
+                                    if ($pos !== false) {
+                                        $bit = substr($bit, 0, $pos);
+                                    }
+                                    $bit = substr($bit, 0, $pos);
+                                    $pos = strpos($bit, '?');
+                                    if ($pos !== false) {
+                                        $bit = substr($bit, 0, $pos);
+                                    }
+                                    $bit = 'files/' . $bit;
+                                    self::$filesCache[urldecode($bit)][] = (object)[
+                                        'template' => str_replace(\Contao\System::getContainer()->getParameter('kernel.project_dir'), '', $full)
+                                    ];
                                 }
                             }
                             $text = explode('{{', $t);
