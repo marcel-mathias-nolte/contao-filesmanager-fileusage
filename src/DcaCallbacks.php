@@ -416,7 +416,19 @@ class DcaCallbacks extends \Contao\Backend
                         $item = $db->prepare("SELECT * FROM `" . $table . "` WHERE `id` = ?")->execute($id)->next();
                         if (isset($GLOBALS['FILE_USAGE'][$table])) {
                             if ($item) {
-                                $tmp = isset($GLOBALS['TL_LANG']['FILE_USAGE'][$table]) ? $GLOBALS['TL_LANG']['FILE_USAGE'][$table] : $GLOBALS['TL_LANG']['FILE_USAGE']['table'] . ' ' . $table;
+                                if (isset($GLOBALS['TL_LANG']['FILE_USAGE'][$table])) {
+                                    if (is_array($GLOBALS['TL_LANG']['FILE_USAGE'][$table])) {
+                                        if (count($GLOBALS['TL_LANG']['FILE_USAGE'][$table]) > 1) {
+                                            $tmp = $GLOBALS['TL_LANG']['FILE_USAGE'][$table][1];
+                                        } else {
+                                            $tmp = $GLOBALS['TL_LANG']['FILE_USAGE'][$table][0];
+                                        }
+                                    } else {
+                                        $tmp = $GLOBALS['TL_LANG']['FILE_USAGE'][$table];
+                                    }
+                                } else {
+                                    $tmp = $GLOBALS['TL_LANG']['FILE_USAGE']['table'] . ' ' . $table;
+                                }
                                 if (is_array($GLOBALS['FILE_USAGE'][$table]['ref']) && $item->type && isset($GLOBALS['FILE_USAGE'][$table]['ref'][$item->type])) {
                                     $tmp .= ' &bdquo;' . $GLOBALS['FILE_USAGE'][$table]['ref'][$item->type][0] . '&ldquo;';
                                 }

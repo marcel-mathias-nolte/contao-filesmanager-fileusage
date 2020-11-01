@@ -40,4 +40,8 @@ $tmp = [
     'tl_news4ward_article' => 'Beitrag',
     'tl_news4ward' => 'Beitragsarchiv'
 ];
-$GLOBALS['TL_LANG']['FILE_USAGE'] = is_array($GLOBALS['TL_LANG']['FILE_USAGE']) ? array_merge_recursive($GLOBALS['TL_LANG']['FILE_USAGE'], $tmp) : $tmp;
+foreach ($tmp as $key => $value) {
+    if (!isset($GLOBALS['TL_LANG']['FILE_USAGE'][$key])) {
+        $GLOBALS['TL_LANG']['FILE_USAGE'][$key] = $value;
+    }
+}
