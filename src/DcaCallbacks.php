@@ -37,7 +37,8 @@ class DcaCallbacks extends \Contao\Backend
             $tables = $db->prepare("SHOW TABLES")->execute();
             $skip_tables = array('tl_version', 'tl_undo', 'tl_files', 'tl_search', 'tl_search_index');
             while ($tables->next()) {
-                $table = array_shift($tables->row());
+                $row = $tables->row();
+                $table = array_shift($row);
                 if(in_array($table,$skip_tables)) {
                     continue;
                 }
@@ -52,8 +53,8 @@ class DcaCallbacks extends \Contao\Backend
                                 $list = $db->execute("SELECT `id`, `$field` FROM `$table`");
                                 while ($list->next()) {
                                     $text = \Contao\Controller::replaceInsertTags($list->$field);
-                                    $text = explode('files/', $text);
-                                    if (count($text > 1)) {
+                                    $text = $text ? explode('files/', $text) : array();
+                                    if (is_array($text) && count($text > 1)) {
                                         array_shift($text);
                                         foreach ($text as $bit) {
                                             $pos = strpos($bit, "'");
@@ -77,8 +78,8 @@ class DcaCallbacks extends \Contao\Backend
                                         }
                                     }
                                     $text = $list->$field;
-                                    $text = explode('{{', $text);
-                                    if (count($text > 1)) {
+                                    $text = $text ? explode('{{', $text) : [];
+                                    if (is_array($text) && count($text > 1)) {
                                         array_shift($text);
                                         foreach ($text as $bit) {
                                             $pos = strpos($bit, "}}");
@@ -124,8 +125,8 @@ class DcaCallbacks extends \Contao\Backend
                             $list = $db->execute("SELECT `id`, `$field` FROM `$table`");
                             while ($list->next()) {
                                 $text = \Contao\Controller::replaceInsertTags($list->$field);
-                                $text = explode('files/', $text);
-                                if (count($text > 1)) {
+                                $text = $text ? explode('files/', $text) : [];
+                                if (is_array($text) && count($text) > 1) {
                                     array_shift($text);
                                     foreach ($text as $bit) {
                                         $pos = strpos($bit, "'");
@@ -146,6 +147,47 @@ class DcaCallbacks extends \Contao\Backend
                                             'table' => $table,
                                             'id' => $list->id
                                         ];
+                                    }
+                                }
+                                $text = $list->$field;
+                                $text = $text ? explode('{{', $text) : [];
+                                if (is_array($text) && count($text > 1)) {
+                                    array_shift($text);
+                                    foreach ($text as $bit) {
+                                        $pos = strpos($bit, "}}");
+                                        if ($pos !== false) {
+                                            $bit = substr($bit, 0, $pos);
+                                            if (strpos($bit, '::') !== false) {
+                                                list($tag, $value) = explode('::', $bit);
+                                                $pos = strpos($value, '?');
+                                                if ($pos !== false) {
+                                                    $value = substr($value, 0, $pos);
+                                                }
+                                                switch($tag) {
+                                                    case 'image':
+                                                    case 'picture':
+                                                        if (\Contao\Validator::isUuid($value)) {
+                                                            // Handle UUIDs
+                                                            $objFiles = \Contao\FilesModel::findByUuid($value);
+                                                        }
+                                                        elseif (is_numeric($value))
+                                                        {
+                                                            $objFiles = \Contao\FilesModel::findByPk($value);
+                                                        }
+                                                        if ($objFiles !== null)
+                                                        {
+                                                            if (file_exists(\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/' . $objFiles->path))
+                                                            {
+                                                                self::$filesCache[$objFiles->path][] = (object)[
+                                                                    'table' => $table,
+                                                                    'id' => $list->id
+                                                                ];
+                                                            }
+                                                        }
+                                                        break;
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
