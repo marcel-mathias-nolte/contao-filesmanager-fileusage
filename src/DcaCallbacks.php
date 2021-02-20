@@ -151,7 +151,7 @@ class DcaCallbacks extends \Contao\Backend
                                 }
                                 $text = $list->$field;
                                 $text = $text ? explode('{{', $text) : [];
-                                if (is_array($text) && count($text > 1)) {
+                                if (is_array($text) && count($text) > 1) {
                                     array_shift($text);
                                     foreach ($text as $bit) {
                                         $pos = strpos($bit, "}}");
