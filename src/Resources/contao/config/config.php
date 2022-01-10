@@ -141,4 +141,4 @@ $tmp = [
         'href' => '/contao?do=news4ward&act=edit&id=%id%'
     ],
 ];
-$GLOBALS['FILE_USAGE'] = is_array($GLOBALS['FILE_USAGE']) ? array_merge_recursive($GLOBALS['FILE_USAGE'], $tmp) : $tmp;
+$GLOBALS['FILE_USAGE'] = isset($GLOBALS['FILE_USAGE']) && is_array($GLOBALS['FILE_USAGE']) ? array_merge_recursive($GLOBALS['FILE_USAGE'], $tmp) : $tmp;

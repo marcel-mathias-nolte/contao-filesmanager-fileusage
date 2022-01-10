@@ -34,27 +34,96 @@ class DcaCallbacks extends \Contao\Backend
         if (self::$filesCache === false) {
             self::$filesCache = [];
             $db = \Database::getInstance();
-            $tables = $db->prepare("SHOW TABLES")->execute();
-            $skip_tables = array('tl_version', 'tl_undo', 'tl_files', 'tl_search', 'tl_search_index');
-            while ($tables->next()) {
-                $row = $tables->row();
-                $table = array_shift($row);
-                if(in_array($table,$skip_tables)) {
-                    continue;
-                }
-                \Controller::loadDataContainer($table);
-                foreach ($GLOBALS['TL_DCA'][$table]['fields'] as $field => $column) {
-                    if (!isset($column['sql']) || !isset($column['inputType'])) {
+            if (!isset($GLOBALS['TL_CONFIG']['fileusageSkipDatabase']) || !$GLOBALS['TL_CONFIG']['fileusageSkipDatabase']) {
+                $tables = $db->prepare("SHOW TABLES")->execute();
+                $skip_tables = array('tl_version', 'tl_undo', 'tl_files', 'tl_search', 'tl_search_index');
+                while ($tables->next()) {
+                    $row = $tables->row();
+                    $table = array_shift($row);
+                    if (in_array($table, $skip_tables)) {
                         continue;
                     }
-                    switch ($column['inputType']) {
-                        case 'text':
-                            if (isset($column['eval']) && is_array($column['eval']) && isset($column['eval']['rgxp']) && $column['eval']['rgxp'] == 'url') {
+                    \Controller::loadDataContainer($table);
+                    if (is_array($GLOBALS['TL_DCA'][$table]['fields']) && count($GLOBALS['TL_DCA'][$table]['fields']) > 0) foreach ($GLOBALS['TL_DCA'][$table]['fields'] as $field => $column) {
+                        if (!isset($column['sql']) || !isset($column['inputType'])) {
+                            continue;
+                        }
+                        switch ($column['inputType']) {
+                            case 'text':
+                                if (isset($column['eval']) && is_array($column['eval']) && isset($column['eval']['rgxp']) && $column['eval']['rgxp'] == 'url') {
+                                    $list = $db->execute("SELECT `id`, `$field` FROM `$table`");
+                                    while ($list->next()) {
+                                        $text = (!isset($GLOBALS['TL_CONFIG']['fileusageSkipReplaceInsertTags']) || !$GLOBALS['TL_CONFIG']['fileusageSkipReplaceInsertTags']) ? \Contao\Controller::replaceInsertTags($list->$field) : $list->$field;
+                                        $text = $text ? explode('files/', $text) : array();
+                                        if (is_array($text) && count($text) > 1) {
+                                            array_shift($text);
+                                            foreach ($text as $bit) {
+                                                $pos = strpos($bit, "'");
+                                                if ($pos !== false) {
+                                                    $bit = substr($bit, 0, $pos);
+                                                }
+                                                $pos = strpos($bit, '"');
+                                                if ($pos !== false) {
+                                                    $bit = substr($bit, 0, $pos);
+                                                }
+                                                $bit = substr($bit, 0, $pos);
+                                                $pos = strpos($bit, '?');
+                                                if ($pos !== false) {
+                                                    $bit = substr($bit, 0, $pos);
+                                                }
+                                                $bit = 'files/' . $bit;
+                                                self::$filesCache[urldecode($bit)][] = (object)[
+                                                    'table' => $table,
+                                                    'id' => $list->id
+                                                ];
+                                            }
+                                        }
+                                        $text = $list->$field;
+                                        $text = $text ? explode('{{', $text) : [];
+                                        if (is_array($text) && count($text) > 1) {
+                                            array_shift($text);
+                                            foreach ($text as $bit) {
+                                                $pos = strpos($bit, "}}");
+                                                if ($pos !== false) {
+                                                    $bit = substr($bit, 0, $pos);
+                                                    if (strpos($bit, '::') !== false) {
+                                                        list($tag, $value) = explode('::', $bit);
+                                                        $pos = strpos($value, '?');
+                                                        if ($pos !== false) {
+                                                            $value = substr($value, 0, $pos);
+                                                        }
+                                                        switch ($tag) {
+                                                            case 'image':
+                                                            case 'picture':
+                                                                if (\Contao\Validator::isUuid($value)) {
+                                                                    // Handle UUIDs
+                                                                    $objFiles = \Contao\FilesModel::findByUuid($value);
+                                                                } elseif (is_numeric($value)) {
+                                                                    $objFiles = \Contao\FilesModel::findByPk($value);
+                                                                }
+                                                                if ($objFiles !== null) {
+                                                                    if (file_exists(\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/' . $objFiles->path)) {
+                                                                        self::$filesCache[$objFiles->path][] = (object)[
+                                                                            'table' => $table,
+                                                                            'id' => $list->id
+                                                                        ];
+                                                                    }
+                                                                }
+                                                                break;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                break;
+                            case 'textarea':
                                 $list = $db->execute("SELECT `id`, `$field` FROM `$table`");
                                 while ($list->next()) {
-                                    $text = \Contao\Controller::replaceInsertTags($list->$field);
-                                    $text = $text ? explode('files/', $text) : array();
-                                    if (is_array($text) && count($text > 1)) {
+                                    $text = (!isset($GLOBALS['TL_CONFIG']['fileusageSkipReplaceInsertTags']) || !$GLOBALS['TL_CONFIG']['fileusageSkipReplaceInsertTags']) ? \Contao\Controller::replaceInsertTags($list->$field) : $list->$field;
+                                    $text = $text ? explode('files/', $text) : [];
+                                    if (is_array($text) && count($text) > 1) {
                                         array_shift($text);
                                         foreach ($text as $bit) {
                                             $pos = strpos($bit, "'");
@@ -79,7 +148,7 @@ class DcaCallbacks extends \Contao\Backend
                                     }
                                     $text = $list->$field;
                                     $text = $text ? explode('{{', $text) : [];
-                                    if (is_array($text) && count($text > 1)) {
+                                    if (is_array($text) && count($text) > 1) {
                                         array_shift($text);
                                         foreach ($text as $bit) {
                                             $pos = strpos($bit, "}}");
@@ -91,21 +160,17 @@ class DcaCallbacks extends \Contao\Backend
                                                     if ($pos !== false) {
                                                         $value = substr($value, 0, $pos);
                                                     }
-                                                    switch($tag) {
+                                                    switch ($tag) {
                                                         case 'image':
                                                         case 'picture':
                                                             if (\Contao\Validator::isUuid($value)) {
                                                                 // Handle UUIDs
                                                                 $objFiles = \Contao\FilesModel::findByUuid($value);
-                                                            }
-                                                            elseif (is_numeric($value))
-                                                            {
+                                                            } elseif (is_numeric($value)) {
                                                                 $objFiles = \Contao\FilesModel::findByPk($value);
                                                             }
-                                                            if ($objFiles !== null)
-                                                            {
-                                                                if (file_exists(\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/' . $objFiles->path))
-                                                                {
+                                                            if ($objFiles !== null) {
+                                                                if (file_exists(\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/' . $objFiles->path)) {
                                                                     self::$filesCache[$objFiles->path][] = (object)[
                                                                         'table' => $table,
                                                                         'id' => $list->id
@@ -119,14 +184,165 @@ class DcaCallbacks extends \Contao\Backend
                                         }
                                     }
                                 }
+                                break;
+                            case 'fileTree':
+                                $list = $db->execute("SELECT `id`, `$field` FROM `$table`");
+                                while ($list->next()) {
+                                    if (isset($column['eval']) && is_array($column['eval']) && isset($column['eval']['fieldType'])) {
+                                        if ($column['eval']['fieldType'] == 'radio' && $list->$field != null) {
+                                            $objFiles = \Contao\FilesModel::findByUuid($list->$field);
+                                            if ($objFiles !== null) {
+                                                if ($objFiles->type == 'file') {
+                                                    if (file_exists(\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/' . $objFiles->path)) {
+                                                        self::$filesCache[$objFiles->path][] = (object)[
+                                                            'table' => $table,
+                                                            'id' => $list->id
+                                                        ];
+                                                    }
+                                                } else {
+                                                    $objSubfiles = \Contao\FilesModel::findByPid($objFiles->uuid, array('order' => 'name'));
+                                                    if ($objSubfiles === null) {
+                                                        continue;
+                                                    }
+                                                    while ($objSubfiles->next()) {
+                                                        if (!file_exists(\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/' . $objSubfiles->path)) {
+                                                            continue;
+                                                        }
+                                                        self::$filesCache[$objSubfiles->path][] = (object)[
+                                                            'table' => $table,
+                                                            'id' => $list->id
+                                                        ];
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        if ($column['eval']['fieldType'] == 'checkbox') {
+                                            $src = deserialize($list->$field);
+                                            $objFiles = \Contao\FilesModel::findMultipleByUuids($src);
+                                            if ($objFiles !== null) {
+                                                while ($objFiles->next()) {
+                                                    if ($objFiles->type == 'file') {
+                                                        if (!file_exists(\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/' . $objFiles->path)) {
+                                                            continue;
+                                                        }
+                                                        self::$filesCache[$objFiles->path][] = (object)[
+                                                            'table' => $table,
+                                                            'id' => $list->id
+                                                        ];
+                                                    } else {
+                                                        $objSubfiles = \Contao\FilesModel::findByPid($objFiles->uuid, array('order' => 'name'));
+                                                        if ($objSubfiles === null) {
+                                                            continue;
+                                                        }
+                                                        while ($objSubfiles->next()) {
+                                                            if (!file_exists(\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/' . $objSubfiles->path)) {
+                                                                continue;
+                                                            }
+                                                            self::$filesCache[$objSubfiles->path][] = (object)[
+                                                                'table' => $table,
+                                                                'id' => $list->id
+                                                            ];
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                break;
+                        }
+                    }
+                }
+            }
+            if (!isset($GLOBALS['TL_CONFIG']['fileusageSkipCss']) || !$GLOBALS['TL_CONFIG']['fileusageSkipCss']) {
+                $list = $this->Database->execute("SELECT * FROM tl_files WHERE name LIKE '%.css' OR name LIKE '%.scss'");
+                while ($list->next()) {
+                    $objFile = \Contao\FilesModel::findByPk($list->id);
+                    if (!file_exists(\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/' . $objFile->path)) {
+                        continue;
+                    }
+                    $t = file_get_contents(\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/' . $objFile->path);
+                    $text = explode('files/', $t);
+                    if (count($text) > 1) {
+                        array_shift($text);
+                        foreach ($text as $bit) {
+                            $pos = strpos($bit, "'");
+                            if ($pos !== false) {
+                                $bit = substr($bit, 0, $pos);
                             }
-                            break;
-                        case 'textarea':
-                            $list = $db->execute("SELECT `id`, `$field` FROM `$table`");
-                            while ($list->next()) {
-                                $text = \Contao\Controller::replaceInsertTags($list->$field);
-                                $text = $text ? explode('files/', $text) : [];
-                                if (is_array($text) && count($text) > 1) {
+                            $pos = strpos($bit, '"');
+                            if ($pos !== false) {
+                                $bit = substr($bit, 0, $pos);
+                            }
+                            $pos = strpos($bit, '}');
+                            if ($pos !== false) {
+                                $bit = substr($bit, 0, $pos);
+                            }
+                            $pos = strpos($bit, '?');
+                            if ($pos !== false) {
+                                $bit = substr($bit, 0, $pos);
+                            }
+                            $bit = 'files/' . $bit;
+                            self::$filesCache[urldecode($bit)][] = (object)[
+                                'css_file' => $objFile->path
+                            ];
+                        }
+                    }
+                    $text = explode('{{', $t);
+                    if (count($text) > 1) {
+                        array_shift($text);
+                        foreach ($text as $bit) {
+                            $pos = strpos($bit, "}}");
+                            if ($pos !== false) {
+                                $bit = substr($bit, 0, $pos);
+                                if (strpos($bit, '::') !== false) {
+                                    list($tag, $value) = explode('::', $bit);
+                                    $pos = strpos($value, '?');
+                                    if ($pos !== false) {
+                                        $value = substr($value, 0, $pos);
+                                    }
+                                    switch ($tag) {
+                                        case 'image':
+                                        case 'picture':
+                                            if (\Contao\Validator::isUuid($value)) {
+                                                // Handle UUIDs
+                                                $objFiles = \Contao\FilesModel::findByUuid($value);
+                                            } elseif (is_numeric($value)) {
+                                                $objFiles = \Contao\FilesModel::findByPk($value);
+                                            }
+                                            if ($objFiles !== null) {
+                                                if (file_exists(\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/' . $objFiles->path)) {
+                                                    self::$filesCache[$objFiles->path][] = (object)[
+                                                        'css_file' => $objFile->path
+                                                    ];
+                                                }
+                                            }
+                                            break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if (!isset($GLOBALS['TL_CONFIG']['fileusageSkipTemplates']) || !$GLOBALS['TL_CONFIG']['fileusageSkipTemplates']) {
+                $stack = [\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/templates'];
+                while (count($stack) > 0) {
+                    $dir = array_pop($stack);
+                    $f = @opendir($dir);
+                    if ($f) {
+                        while (($file = readdir($f)) !== false) {
+                            if ($file == '.' || $file == '..') {
+                                continue;
+                            }
+                            $full = $dir . '/' . $file;
+                            if (is_dir($full)) {
+                                array_push($stack, $full);
+                            } else if (is_file($full)) {
+                                $t = file_get_contents($full);
+                                $text = (!isset($GLOBALS['TL_CONFIG']['fileusageSkipReplaceInsertTags']) || !$GLOBALS['TL_CONFIG']['fileusageSkipReplaceInsertTags']) ? \Contao\Controller::replaceInsertTags($t) : $t;
+                                $text = explode('files/', $text);
+                                if (count($text) > 1) {
                                     array_shift($text);
                                     foreach ($text as $bit) {
                                         $pos = strpos($bit, "'");
@@ -144,287 +360,51 @@ class DcaCallbacks extends \Contao\Backend
                                         }
                                         $bit = 'files/' . $bit;
                                         self::$filesCache[urldecode($bit)][] = (object)[
-                                            'table' => $table,
-                                            'id' => $list->id
+                                            'template' => str_replace(\Contao\System::getContainer()->getParameter('kernel.project_dir'), '', $full)
                                         ];
                                     }
                                 }
-                                $text = $list->$field;
-                                $text = $text ? explode('{{', $text) : [];
-                                if (is_array($text) && count($text) > 1) {
-                                    array_shift($text);
-                                    foreach ($text as $bit) {
-                                        $pos = strpos($bit, "}}");
-                                        if ($pos !== false) {
-                                            $bit = substr($bit, 0, $pos);
-                                            if (strpos($bit, '::') !== false) {
-                                                list($tag, $value) = explode('::', $bit);
-                                                $pos = strpos($value, '?');
-                                                if ($pos !== false) {
-                                                    $value = substr($value, 0, $pos);
-                                                }
-                                                switch($tag) {
-                                                    case 'image':
-                                                    case 'picture':
-                                                        if (\Contao\Validator::isUuid($value)) {
-                                                            // Handle UUIDs
-                                                            $objFiles = \Contao\FilesModel::findByUuid($value);
-                                                        }
-                                                        elseif (is_numeric($value))
-                                                        {
-                                                            $objFiles = \Contao\FilesModel::findByPk($value);
-                                                        }
-                                                        if ($objFiles !== null)
-                                                        {
-                                                            if (file_exists(\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/' . $objFiles->path))
-                                                            {
-                                                                self::$filesCache[$objFiles->path][] = (object)[
-                                                                    'table' => $table,
-                                                                    'id' => $list->id
-                                                                ];
-                                                            }
-                                                        }
-                                                        break;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            break;
-                        case 'fileTree':
-                            $list = $db->execute("SELECT `id`, `$field` FROM `$table`");
-                            while ($list->next()) {
-                                if (isset($column['eval']) && is_array($column['eval']) && isset($column['eval']['fieldType'])) {
-                                    if ($column['eval']['fieldType'] == 'radio' && $list->$field != null) {
-                                        $objFiles = \Contao\FilesModel::findByUuid($list->$field);
-                                        if ($objFiles !== null)
-                                        {
-                                            if ($objFiles->type == 'file') {
-                                                if (file_exists(\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/' . $objFiles->path))
-                                                {
-                                                    self::$filesCache[$objFiles->path][] = (object)[
-                                                        'table' => $table,
-                                                        'id' => $list->id
-                                                    ];
-                                                }
-                                            } else {
-                                                $objSubfiles = \Contao\FilesModel::findByPid($objFiles->uuid, array('order' => 'name'));
-                                                if ($objSubfiles === null)
-                                                {
-                                                    continue;
-                                                }
-                                                while ($objSubfiles->next())
-                                                {
-                                                    if (!file_exists(\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/' . $objSubfiles->path))
-                                                    {
-                                                        continue;
-                                                    }
-                                                    self::$filesCache[$objSubfiles->path][] = (object)[
-                                                        'table' => $table,
-                                                        'id' => $list->id
-                                                    ];
-                                                }
-                                            }
-                                        }
-                                    }
-                                    if ($column['eval']['fieldType'] == 'checkbox') {
-                                        $src = deserialize($list->$field);
-                                        $objFiles = \Contao\FilesModel::findMultipleByUuids($src);
-                                        if ($objFiles !== null)
-                                        {
-                                            while ($objFiles->next())
-                                            {
-                                                if ($objFiles->type == 'file') {
-                                                    if (!file_exists(\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/' . $objFiles->path))
-                                                    {
-                                                        continue;
-                                                    }
-                                                    self::$filesCache[$objFiles->path][] = (object)[
-                                                        'table' => $table,
-                                                        'id' => $list->id
-                                                    ];
-                                                } else {
-                                                    $objSubfiles = \Contao\FilesModel::findByPid($objFiles->uuid, array('order' => 'name'));
-                                                    if ($objSubfiles === null)
-                                                    {
-                                                        continue;
-                                                    }
-                                                    while ($objSubfiles->next())
-                                                    {
-                                                        if (!file_exists(\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/' . $objSubfiles->path))
-                                                        {
-                                                            continue;
-                                                        }
-                                                        self::$filesCache[$objSubfiles->path][] = (object)[
-                                                            'table' => $table,
-                                                            'id' => $list->id
-                                                        ];
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            break;
-                    }
-                }
-            }
-            $list = $this->Database->execute("SELECT * FROM tl_files WHERE name LIKE '%.css' OR name LIKE '%.scss'");
-            while($list->next()) {
-                $objFile = \Contao\FilesModel::findByPk($list->id);
-                if (!file_exists(\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/' . $objFile->path))
-                {
-                    continue;
-                }
-                $t = file_get_contents(\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/' . $objFile->path);
-                $text = explode('files/', $t);
-                if (count($text > 1)) {
-                    array_shift($text);
-                    foreach ($text as $bit) {
-                        $pos = strpos($bit, "'");
-                        if ($pos !== false) {
-                            $bit = substr($bit, 0, $pos);
-                        }
-                        $pos = strpos($bit, '"');
-                        if ($pos !== false) {
-                            $bit = substr($bit, 0, $pos);
-                        }
-                        $pos = strpos($bit, '}');
-                        if ($pos !== false) {
-                            $bit = substr($bit, 0, $pos);
-                        }
-                        $pos = strpos($bit, '?');
-                        if ($pos !== false) {
-                            $bit = substr($bit, 0, $pos);
-                        }
-                        $bit = 'files/' . $bit;
-                        self::$filesCache[urldecode($bit)][] = (object)[
-                            'css_file' => $objFile->path
-                        ];
-                    }
-                }
-                $text = explode('{{', $t);
-                if (count($text > 1)) {
-                    array_shift($text);
-                    foreach ($text as $bit) {
-                        $pos = strpos($bit, "}}");
-                        if ($pos !== false) {
-                            $bit = substr($bit, 0, $pos);
-                            if (strpos($bit, '::') !== false) {
-                                list($tag, $value) = explode('::', $bit);
-                                $pos = strpos($value, '?');
-                                if ($pos !== false) {
-                                    $value = substr($value, 0, $pos);
-                                }
-                                switch($tag) {
-                                    case 'image':
-                                    case 'picture':
-                                        if (\Contao\Validator::isUuid($value)) {
-                                            // Handle UUIDs
-                                            $objFiles = \Contao\FilesModel::findByUuid($value);
-                                        }
-                                        elseif (is_numeric($value))
-                                        {
-                                            $objFiles = \Contao\FilesModel::findByPk($value);
-                                        }
-                                        if ($objFiles !== null)
-                                        {
-                                            if (file_exists(\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/' . $objFiles->path))
-                                            {
-                                                self::$filesCache[$objFiles->path][] = (object)[
-                                                    'css_file' => $objFile->path
-                                                ];
-                                            }
-                                        }
-                                        break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            $stack = [\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/templates'];
-            while (count($stack) > 0) {
-                $dir = array_pop($stack);
-                $f = @opendir($dir);
-                if ($f) {
-                    while (($file = readdir($f)) !== false) {
-                        if ($file == '.' || $file == '..') {
-                            continue;
-                        }
-                        $full = $dir . '/' . $file;
-                        if (is_dir($full)) {
-                            array_push($stack, $full);
-                        } else if (is_file($full)) {
-                            $t = file_get_contents($full);
-                            $text = \Contao\Controller::replaceInsertTags($t);
-                            $text = explode('files/', $text);
-                            if (count($text > 1)) {
-                                array_shift($text);
-                                foreach ($text as $bit) {
-                                    $pos = strpos($bit, "'");
-                                    if ($pos !== false) {
-                                        $bit = substr($bit, 0, $pos);
-                                    }
-                                    $pos = strpos($bit, '"');
-                                    if ($pos !== false) {
-                                        $bit = substr($bit, 0, $pos);
-                                    }
-                                    $bit = substr($bit, 0, $pos);
-                                    $pos = strpos($bit, '?');
-                                    if ($pos !== false) {
-                                        $bit = substr($bit, 0, $pos);
-                                    }
-                                    $bit = 'files/' . $bit;
-                                    self::$filesCache[urldecode($bit)][] = (object)[
-                                        'template' => str_replace(\Contao\System::getContainer()->getParameter('kernel.project_dir'), '', $full)
-                                    ];
-                                }
-                            }
-                            $text = explode('{{', $t);
-                            if (count($text > 1)) {
-                                array_shift($text);
-                                foreach ($text as $bit) {
-                                    $pos = strpos($bit, "}}");
-                                    if ($pos !== false) {
-                                        $bit = substr($bit, 0, $pos);
-                                        if (strpos($bit, '::') !== false) {
-                                            list($tag, $value) = explode('::', $bit);
-                                            $pos = strpos($value, '?');
+                                if (!isset($GLOBALS['TL_CONFIG']['fileusageSkipReplaceInsertTags']) || !$GLOBALS['TL_CONFIG']['fileusageSkipReplaceInsertTags']) {
+                                    $text = explode('{{', $t);
+                                    if (count($text) > 1) {
+                                        array_shift($text);
+                                        foreach ($text as $bit) {
+                                            $pos = strpos($bit, "}}");
                                             if ($pos !== false) {
-                                                $value = substr($value, 0, $pos);
-                                            }
-                                            switch($tag) {
-                                                case 'image':
-                                                case 'picture':
-                                                    if (\Contao\Validator::isUuid($value)) {
-                                                        // Handle UUIDs
-                                                        $objFiles = \Contao\FilesModel::findByUuid($value);
+                                                $bit = substr($bit, 0, $pos);
+                                                if (strpos($bit, '::') !== false) {
+                                                    list($tag, $value) = explode('::', $bit);
+                                                    $pos = strpos($value, '?');
+                                                    if ($pos !== false) {
+                                                        $value = substr($value, 0, $pos);
                                                     }
-                                                    elseif (is_numeric($value))
-                                                    {
-                                                        $objFiles = \Contao\FilesModel::findByPk($value);
+                                                    switch ($tag) {
+                                                        case 'image':
+                                                        case 'picture':
+                                                            if (\Contao\Validator::isUuid($value)) {
+                                                                // Handle UUIDs
+                                                                $objFiles = \Contao\FilesModel::findByUuid($value);
+                                                            } elseif (is_numeric($value)) {
+                                                                $objFiles = \Contao\FilesModel::findByPk($value);
+                                                            }
+                                                            if ($objFiles !== null) {
+                                                                if (file_exists(\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/' . $objFiles->path)) {
+                                                                    self::$filesCache[$objFiles->path][] = (object)[
+                                                                        'template' => str_replace(\Contao\System::getContainer()->getParameter('kernel.project_dir'), '', $full)
+                                                                    ];
+                                                                }
+                                                            }
+                                                            break;
                                                     }
-                                                    if ($objFiles !== null)
-                                                    {
-                                                        if (file_exists(\Contao\System::getContainer()->getParameter('kernel.project_dir') . '/' . $objFiles->path))
-                                                        {
-                                                            self::$filesCache[$objFiles->path][] = (object)[
-                                                                'template' => str_replace(\Contao\System::getContainer()->getParameter('kernel.project_dir'), '', $full)
-                                                            ];
-                                                        }
-                                                    }
-                                                    break;
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
                         }
+                        @closedir($f);
                     }
-                    @closedir($f);
                 }
             }
         }
