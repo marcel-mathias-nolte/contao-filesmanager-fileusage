@@ -95,6 +95,7 @@ class DcaCallbacks extends \Contao\Backend
                                                         switch ($tag) {
                                                             case 'image':
                                                             case 'picture':
+                                                            case 'file':
                                                                 if (\Contao\Validator::isUuid($value)) {
                                                                     // Handle UUIDs
                                                                     $objFiles = \Contao\FilesModel::findByUuid($value);
@@ -163,6 +164,7 @@ class DcaCallbacks extends \Contao\Backend
                                                     switch ($tag) {
                                                         case 'image':
                                                         case 'picture':
+                                                        case 'file':
                                                             if (\Contao\Validator::isUuid($value)) {
                                                                 // Handle UUIDs
                                                                 $objFiles = \Contao\FilesModel::findByUuid($value);
@@ -304,6 +306,7 @@ class DcaCallbacks extends \Contao\Backend
                                     switch ($tag) {
                                         case 'image':
                                         case 'picture':
+                                        case 'file':
                                             if (\Contao\Validator::isUuid($value)) {
                                                 // Handle UUIDs
                                                 $objFiles = \Contao\FilesModel::findByUuid($value);
@@ -381,6 +384,7 @@ class DcaCallbacks extends \Contao\Backend
                                                     switch ($tag) {
                                                         case 'image':
                                                         case 'picture':
+                                                        case 'file':
                                                             if (\Contao\Validator::isUuid($value)) {
                                                                 // Handle UUIDs
                                                                 $objFiles = \Contao\FilesModel::findByUuid($value);
