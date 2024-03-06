@@ -33,7 +33,7 @@ class DcaCallbacks extends \Contao\Backend
     protected function buildUsageCache() {
         if (self::$filesCache === false) {
             self::$filesCache = [];
-            $db = \Database::getInstance();
+            $db = \Contao\Database::getInstance();
             if (!isset($GLOBALS['TL_CONFIG']['fileusageSkipDatabase']) || !$GLOBALS['TL_CONFIG']['fileusageSkipDatabase']) {
                 $tables = $db->prepare("SHOW TABLES")->execute();
                 $skip_tables = array('tl_version', 'tl_undo', 'tl_files', 'tl_search', 'tl_search_index');
@@ -43,7 +43,7 @@ class DcaCallbacks extends \Contao\Backend
                     if (in_array($table, $skip_tables)) {
                         continue;
                     }
-                    \Controller::loadDataContainer($table);
+                    \Contao\Controller::loadDataContainer($table);
                     if (is_array($GLOBALS['TL_DCA'][$table]['fields']) && count($GLOBALS['TL_DCA'][$table]['fields']) > 0) foreach ($GLOBALS['TL_DCA'][$table]['fields'] as $field => $column) {
                         if (!isset($column['sql']) || !isset($column['inputType'])) {
                             continue;
@@ -53,7 +53,7 @@ class DcaCallbacks extends \Contao\Backend
                                 if (isset($column['eval']) && is_array($column['eval']) && isset($column['eval']['rgxp']) && $column['eval']['rgxp'] == 'url') {
                                     $list = $db->execute("SELECT `id`, `$field` FROM `$table`");
                                     while ($list->next()) {
-                                        $text = (!isset($GLOBALS['TL_CONFIG']['fileusageSkipReplaceInsertTags']) || !$GLOBALS['TL_CONFIG']['fileusageSkipReplaceInsertTags']) ? \Contao\Controller::replaceInsertTags($list->$field) : $list->$field;
+                                        $text = (!isset($GLOBALS['TL_CONFIG']['fileusageSkipReplaceInsertTags']) || !$GLOBALS['TL_CONFIG']['fileusageSkipReplaceInsertTags']) ? \Contao\System::getContainer()->get('contao.insert_tag.parser')->replace($list->$field ?? '') : $list->$field;
                                         $text = $text ? explode('files/', $text) : array();
                                         if (is_array($text) && count($text) > 1) {
                                             array_shift($text);
@@ -122,7 +122,7 @@ class DcaCallbacks extends \Contao\Backend
                             case 'textarea':
                                 $list = $db->execute("SELECT `id`, `$field` FROM `$table`");
                                 while ($list->next()) {
-                                    $text = (!isset($GLOBALS['TL_CONFIG']['fileusageSkipReplaceInsertTags']) || !$GLOBALS['TL_CONFIG']['fileusageSkipReplaceInsertTags']) ? \Contao\Controller::replaceInsertTags($list->$field) : $list->$field;
+                                    $text = (!isset($GLOBALS['TL_CONFIG']['fileusageSkipReplaceInsertTags']) || !$GLOBALS['TL_CONFIG']['fileusageSkipReplaceInsertTags']) ? \Contao\System::getContainer()->get('contao.insert_tag.parser')->replace($list->$field ?? '') : $list->$field;
                                     $text = $text ? explode('files/', $text) : [];
                                     if (is_array($text) && count($text) > 1) {
                                         array_shift($text);
@@ -219,7 +219,7 @@ class DcaCallbacks extends \Contao\Backend
                                             }
                                         }
                                         if ($column['eval']['fieldType'] == 'checkbox') {
-                                            $src = deserialize($list->$field);
+                                            $src = \Contao\StringUtil::deserialize($list->$field);
                                             $objFiles = \Contao\FilesModel::findMultipleByUuids($src);
                                             if ($objFiles !== null) {
                                                 while ($objFiles->next()) {
@@ -343,7 +343,7 @@ class DcaCallbacks extends \Contao\Backend
                                 array_push($stack, $full);
                             } else if (is_file($full)) {
                                 $t = file_get_contents($full);
-                                $text = (!isset($GLOBALS['TL_CONFIG']['fileusageSkipReplaceInsertTags']) || !$GLOBALS['TL_CONFIG']['fileusageSkipReplaceInsertTags']) ? \Contao\Controller::replaceInsertTags($t) : $t;
+                                $text = (!isset($GLOBALS['TL_CONFIG']['fileusageSkipReplaceInsertTags']) || !$GLOBALS['TL_CONFIG']['fileusageSkipReplaceInsertTags']) ? \Contao\System::getContainer()->get('contao.insert_tag.parser')->replace($t) : $t;
                                 $text = explode('files/', $text);
                                 if (count($text) > 1) {
                                     array_shift($text);
@@ -415,19 +415,19 @@ class DcaCallbacks extends \Contao\Backend
     }
 
     public function showUsage() {
-        if(!\Input::get('id')) {
+        if(!\Contao\Input::get('id')) {
             return '';
         }
         $GLOBALS['TL_CSS'][] = 'bundles/contaofilesmanagerfileusage/css/fileusage.css';
-        $this->Template = new \BackendTemplate($this->strTemplate);
-        $this->Template->filename = urldecode(\Input::get('id'));
+        $this->Template = new \Contao\BackendTemplate($this->strTemplate);
+        $this->Template->filename = urldecode(\Contao\Input::get('id'));
         $this->buildUsageCache();
-        $db = \Database::getInstance();
-        if (!isset(self::$filesCache[urldecode(\Input::get('id'))])) {
+        $db = \Contao\Database::getInstance();
+        if (!isset(self::$filesCache[urldecode(\Contao\Input::get('id'))])) {
             $this->Template->usage = [];
             return $this->Template->parse();
         }
-        $usage = self::$filesCache[urldecode(\Input::get('id'))];
+        $usage = self::$filesCache[urldecode(\Contao\Input::get('id'))];
         $known = [];
         if (count($usage) > 0) {
             foreach ($usage as $u) {
@@ -462,7 +462,7 @@ class DcaCallbacks extends \Contao\Backend
                                     $hasLabel = false;
                                     foreach ($GLOBALS['FILE_USAGE'][$table]['labelColumn'] as $column) {
                                         if ($item->$column && !$hasLabel) {
-                                            $tmp .= ' &bdquo;' . htmlspecialchars(html_entity_decode(\Contao\Controller::replaceInsertTags($item->$column))) . '&ldquo;';
+                                            $tmp .= ' &bdquo;' . htmlspecialchars(html_entity_decode(\Contao\System::getContainer()->get('contao.insert_tag.parser')->replace($item->$column))) . '&ldquo;';
                                             $hasLabel = true;
                                         }
                                     }
@@ -477,7 +477,7 @@ class DcaCallbacks extends \Contao\Backend
                                 $href = is_array($GLOBALS['FILE_USAGE'][$table]['href']) ? $GLOBALS['FILE_USAGE'][$table]['href'][$item->ptable] : $GLOBALS['FILE_USAGE'][$table]['href'];
                             }
                             if ($href) {
-                                $tmp = '<a href="' . str_replace('%id%', $id, str_replace('%pid%', isset($item->pid) ? $item->pid : '', $href)) . '&rt='.\Controller::replaceInsertTags('{{request_token}}') . '">' . $tmp . '</a>';
+                                $tmp = '<a href="' . str_replace('%id%', $id, str_replace('%pid%', isset($item->pid) ? $item->pid : '', $href)) . '&rt='.\Contao\System::getContainer()->get('contao.insert_tag.parser')->replace('{{request_token}}') . '">' . $tmp . '</a>';
                             }
                             if ($item && $GLOBALS['FILE_USAGE'][$table]['parent']) {
                                 if ($GLOBALS['FILE_USAGE'][$table]['parent'] == 'dynamic') {
@@ -493,7 +493,7 @@ class DcaCallbacks extends \Contao\Backend
                                 $tmp = isset($GLOBALS['TL_LANG']['FILE_USAGE'][$table]) ? $GLOBALS['TL_LANG']['FILE_USAGE'][$table] : $GLOBALS['TL_LANG']['FILE_USAGE']['table'] . ' ' . $table;
                                 // assume title column exists
                                 if ($item->title) {
-                                    $tmp .= ' &bdquo;' . htmlspecialchars(html_entity_decode(\Contao\Controller::replaceInsertTags($item->column))) . '&ldquo;';
+                                    $tmp .= ' &bdquo;' . htmlspecialchars(html_entity_decode(\Contao\System::getContainer()->get('contao.insert_tag.parser')->replace($item->column))) . '&ldquo;';
                                 }
                                 $tmp .= ' ID ' . $id;
                             } else {

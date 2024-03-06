@@ -10,7 +10,11 @@
  * @license   LGPL-3.0-or-later
  */
 
-$GLOBALS['BE_MOD']['system']['files']['fileusage'] = array('\MarcelMathiasNolte\ContaoFilesmanagerFileusageBundle\DcaCallbacks', 'showUsage');
+$section = 'system';
+if(!array_key_exists('files', $GLOBALS['BE_MOD']['system'])) {
+	$section = 'content';
+}
+$GLOBALS['BE_MOD'][$section]['files']['fileusage'] = array('\MarcelMathiasNolte\ContaoFilesmanagerFileusageBundle\DcaCallbacks', 'showUsage');
 
 $tmp = [
     'tl_content' => [
